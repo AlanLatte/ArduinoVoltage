@@ -1,20 +1,26 @@
 // Подлкючаем необходимые библиотеки
+/*
+      VERSION:  0.1b
+*/
+
 #include <TimeLib.h>
 #include <Wire.h>
 #include <DS1307RTC.h>
 #include <SD.h>
 
-const   int    timeInterval         = 60;              //  Раз в сколько секунд будет происходить запись.
-const   float  interval             = 0.5;            //  Частота сканироввания датчика напряжение.
+const   int    timeInterval         = 60;             //  Раз в сколько секунд будет происходить запись.
+const   float  interval             = 1;              //  Частота сканироввания датчика напряжение.
 const   int    sdPin                = 4;              //  Pin SD карты.
 const   int    analogInput          = 0;              //  Pin Для "+" датчика напряжения.
-const   bool   InitializationSDcard = false;           //  Включена SD карта в сборку? false - нет, true - да.
+const   float  resistance           = 2.75;           //  Сопротивление тока.
+const   bool   InitializationSDcard = false;          //  Включена SD карта в сборку? false - нет, true - да.
 const   String FileName             = "LOGS.txt";     //  Название файла в который будет происходить запись.
 
 /* Warning: Не изменять*/
-float   timeLimit             = timeInterval;
-String  collectedDataVoltage  = "";
-File    logFile;
+float        timeLimit              = timeInterval;
+const  int   amountOfElements       = timeLimit * (1 / (interval));
+String       collectedDataVoltage   = "";
+File         logFile;
 /*----------------------------*/
 
 void setup() {
@@ -47,7 +53,7 @@ void setup() {
 }
 
 void loop() {
-  if (timeLimit == 0) {
+  if (timeLimit <= 0.0) {
     /* Собираем данные с датчиков, объединяем в необходимый формат. */
     String collectedDataDatetime = getDateTime();
     String collected_all_data = collectedDataDatetime + "-" + collectedDataVoltage;
@@ -164,7 +170,7 @@ String getVoltageData() {
 }
 
 String getDateTime() {
-//  Serial.println(gettime("Y.m.d-H:i:s"));
+
   String collectedData = String(year()) + "." + month() + "." +  day() + "-" + hour() + ":" +  minute() + ":" + second();
   return collectedData;
   /*
@@ -175,8 +181,6 @@ String getDateTime() {
 
 float * getData() {
   /* Warning: Не изменять */
-  const  int   amountOfElements = timeLimit * (1 / (interval));
-  const  float resistance = 2.75;
   static float data[3];
   int   analogValue;
   float average = 0;
@@ -188,13 +192,13 @@ float * getData() {
   /* ------------ */
   for (int index = 0; index < amountOfElements; index ++)
   {
-    analogValue = analogRead(analogInput);      // Считываем значения с аналогового порта.
-    voltage = ( 5 / 1024.0 ) * analogValue;     // Формула для расчёта напряжения.
-    amperage = ( voltage / resistance );        // Формула для расчёта силы тока.
-    average += amperage;                        // Складываем в перменную все значения силы тока.
-    Array[index] = amperage;                    // Записываем в массив данные.
-    timeLimit -= interval;                      // Вычитаем от переменной интервал.
-    delay(interval*1000);                       // Время простоя.
+    analogValue = analogRead(analogInput);       // Считываем значения с аналогового порта.
+    voltage = ( 5 / 1024.0 ) * analogValue;      // Формула для расчёта напряжения.
+    amperage = voltage / resistance;             // Формула для расчёта силы тока.
+    average += amperage;                         // Складываем в перменную все значения силы тока.
+    Array[index] = amperage;                     // Записываем в массив данные.
+    timeLimit -= interval;                       // Вычитаем от переменной интервал.
+    delay(interval*1000);                        // Время простоя.
   }
   /* Алгоритм поиска максимального и минимального значения */
   maxElem = Array[0]; minElem = Array[0];
