@@ -1,24 +1,25 @@
-// Подлкючаем необходимые библиотеки
 /*
       VERSION:  0.1b
 */
 
+// Подлкючаем необходимые библиотеки
 #include <TimeLib.h>
 #include <Wire.h>
 #include <DS1307RTC.h>
 #include <SD.h>
 
-const   int    timeInterval         = 60;             //  Раз в сколько секунд будет происходить запись.
-const   float  interval             = 1;              //  Частота сканироввания датчика напряжение.
-const   int    sdPin                = 4;              //  Pin SD карты.
-const   int    analogInput          = 0;              //  Pin Для "+" датчика напряжения.
-const   float  resistance           = 2.75;           //  Сопротивление тока.
-const   bool   InitializationSDcard = false;          //  Включена SD карта в сборку? false - нет, true - да.
-const   String FileName             = "LOGS.txt";     //  Название файла в который будет происходить запись.
+#define sdPin         4                           //  Pin SD карты.
+#define analogInput   0                           //  Pin Для "+" датчика напряжения.
+
+const   int    timeInterval         = 5;          //  Раз в сколько секунд будет происходить запись.
+const   float  interval             = 0.1;          //  Частота сканироввания датчика напряжение. (second /interval)
+const   float  resistance           = 2.75;       //  Сопротивление тока.
+const   bool   InitializationSDcard = false;      //  Включена SD карта в сборку? false - нет, true - да.
+const   String FileName             = "LOGS.txt"; //  Название файла в который будет происходить запись.
 
 /* Warning: Не изменять*/
 float        timeLimit              = timeInterval;
-const  int   amountOfElements       = timeLimit * (1 / (interval));
+const  int   amountOfElements       = timeInterval * (1 / (interval));
 String       collectedDataVoltage   = "";
 File         logFile;
 /*----------------------------*/
@@ -48,12 +49,11 @@ void setup() {
   } else {
     Serial.println("Initialization of the memory card is not included");
   }
-
   /* ---------------------------------- */
 }
 
 void loop() {
-  if (timeLimit <= 0.0) {
+  if (timeLimit == 0){
     /* Собираем данные с датчиков, объединяем в необходимый формат. */
     String collectedDataDatetime = getDateTime();
     String collected_all_data = collectedDataDatetime + "-" + collectedDataVoltage;
@@ -61,17 +61,17 @@ void loop() {
       Формат данных:
           Год . Месяц . День - Час : Минута : Секунда - Мин.значМин.знач - Макс.знач - Сред.знач - Макс.знач - Сред.знач
     */
-    timeLimit = timeInterval;                     // Сбрасываем время отчета.
     if (InitializationSDcard){
       writeToFile(collected_all_data, FileName);  // Записываем в файл на SD карту.
     } else{
       Serial.println(collected_all_data);         // Выводит на экраз значения.
     }
-  } else {
+    timeLimit = timeInterval;                     // Сбрасываем время отчета.
+  } else{
     collectedDataVoltage = getVoltageData();
+    Serial.printf("\n");
   }
 }
-
 
 void tuningClock(){
   const String* date  =   getCurrentDate();
@@ -172,6 +172,7 @@ String getVoltageData() {
 String getDateTime() {
 
   String collectedData = String(year()) + "." + month() + "." +  day() + "-" + hour() + ":" +  minute() + ":" + second();
+
   return collectedData;
   /*
     Год . Месяц . День - Час : Минута : Секунда
@@ -189,6 +190,7 @@ float * getData() {
   float minElem;
   float voltage;
   float amperage;
+  int delay_  = interval*1000;
   /* ------------ */
   for (int index = 0; index < amountOfElements; index ++)
   {
@@ -197,8 +199,9 @@ float * getData() {
     amperage = voltage / resistance;             // Формула для расчёта силы тока.
     average += amperage;                         // Складываем в перменную все значения силы тока.
     Array[index] = amperage;                     // Записываем в массив данные.
+
     timeLimit -= interval;                       // Вычитаем от переменной интервал.
-    delay(interval*1000);                        // Время простоя.
+    delay(delay_);                               // Время простоя.
   }
   /* Алгоритм поиска максимального и минимального значения */
   maxElem = Array[0]; minElem = Array[0];
