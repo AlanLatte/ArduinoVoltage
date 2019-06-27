@@ -1,25 +1,25 @@
-// Подлкючаем необходимые библиотеки
 /*
-      VERSION:  0.1b
+      VERSION:  0.1c
 */
 
+// Подлкючаем необходимые библиотеки
 #include <TimeLib.h>
 #include <Wire.h>
 #include <DS1307RTC.h>
 #include <SD.h>
 
-const   int    timeInterval         = 60;             //  Раз в сколько секунд будет происходить запись.
-const   float  interval             = 1;              //  Частота сканироввания датчика напряжение.
-const   int    sdPin                = 4;              //  Pin SD карты.
-const   int    analogInput          = 0;              //  Pin Для "+" датчика напряжения.
-const   float  resistance           = 2.75;           //  Сопротивление тока.
-const   bool   InitializationSDcard = false;          //  Включена SD карта в сборку? false - нет, true - да.
-const   String FileName             = "LOGS.txt";     //  Название файла в который будет происходить запись.
+#define sdPin         4                             //  Pin SD карты.
+#define analogInput   0                             //  Pin Для "+" датчика напряжения.
+
+const   int    timeInterval          = 60;          //  Раз в сколько секунд будет происходить запись.
+const   double  interval             = 0.5;         //  Частота сканироввания датчика напряжение. (second /interval)
+const   double  resistance           = 2.75;        //  Сопротивление тока.
+const   bool   InitializationSDcard  = false;       //  Включена SD карта в сборку? false - нет, true - да.
+const   String FileName              = "LOGS.txt";  //  Название файла в который будет происходить запись.
 
 /* Warning: Не изменять*/
-float        timeLimit              = timeInterval;
-const  int   amountOfElements       = timeLimit * (1 / (interval));
-String       collectedDataVoltage   = "";
+double        timeLimit              = timeInterval;
+const  int   amountOfElements        = timeInterval * (1 / (interval));
 File         logFile;
 /*----------------------------*/
 
@@ -48,30 +48,29 @@ void setup() {
   } else {
     Serial.println("Initialization of the memory card is not included");
   }
-
   /* ---------------------------------- */
 }
 
 void loop() {
-  if (timeLimit <= 0.0) {
-    /* Собираем данные с датчиков, объединяем в необходимый формат. */
-    String collectedDataDatetime = getDateTime();
-    String collected_all_data = collectedDataDatetime + "-" + collectedDataVoltage;
-    /*
-      Формат данных:
-          Год . Месяц . День - Час : Минута : Секунда - Мин.значМин.знач - Макс.знач - Сред.знач - Макс.знач - Сред.знач
-    */
-    timeLimit = timeInterval;                     // Сбрасываем время отчета.
-    if (InitializationSDcard){
-      writeToFile(collected_all_data, FileName);  // Записываем в файл на SD карту.
-    } else{
-      Serial.println(collected_all_data);         // Выводит на экраз значения.
-    }
-  } else {
-    collectedDataVoltage = getVoltageData();
-  }
-}
+  /* Собираем данные с датчиков, объединяем в необходимый формат. */
+  String collected_all_data = "";
+  String collectedDataVoltage = getVoltageData();
+  collected_all_data += getDateTime();
+  collected_all_data += "-";
+  collected_all_data += collectedDataVoltage;
+  /*--------------------------*/
 
+  /*
+    Формат данных:
+        Год . Месяц . День - Час : Минута : Секунда - Мин.значМин.знач - Макс.знач - Сред.знач - Макс.знач - Сред.знач
+  */
+  if (InitializationSDcard){
+    writeToFile(collected_all_data, FileName);  // Записываем в файл на SD карту.
+  } else{
+    Serial.println(collected_all_data);         // Выводит на экраз значения.
+  }
+  timeLimit = timeInterval;                     // Сбрасываем время отчета.
+}
 
 void tuningClock(){
   const String* date  =   getCurrentDate();
@@ -157,7 +156,7 @@ void writeToFile(String data, String FileName) {
 }
 
 String getVoltageData() {
-  float* data = getData();
+  double* data = getData();
   String collectedData = String(data[0]) + "-" + String(data[1]) + "-" + String(data[2]);
   return collectedData;
   /*
@@ -172,6 +171,7 @@ String getVoltageData() {
 String getDateTime() {
 
   String collectedData = String(year()) + "." + month() + "." +  day() + "-" + hour() + ":" +  minute() + ":" + second();
+
   return collectedData;
   /*
     Год . Месяц . День - Час : Минута : Секунда
@@ -179,16 +179,17 @@ String getDateTime() {
 }
 
 
-float * getData() {
+double * getData() {
   /* Warning: Не изменять */
-  static float data[3];
+  static double data[3];
   int   analogValue;
-  float average = 0;
-  float Array[amountOfElements];
-  float maxElem;
-  float minElem;
-  float voltage;
-  float amperage;
+  double average = 0;
+  double Array[amountOfElements];
+  double maxElem;
+  double minElem;
+  double voltage;
+  double amperage;
+  int delay_  = interval*1000;
   /* ------------ */
   for (int index = 0; index < amountOfElements; index ++)
   {
@@ -198,8 +199,9 @@ float * getData() {
     average += amperage;                         // Складываем в перменную все значения силы тока.
     Array[index] = amperage;                     // Записываем в массив данные.
     timeLimit -= interval;                       // Вычитаем от переменной интервал.
-    delay(interval*1000);                        // Время простоя.
+    delay(delay_);                               // Время простоя.
   }
+
   /* Алгоритм поиска максимального и минимального значения */
   maxElem = Array[0]; minElem = Array[0];
   for(int i = 1; i < amountOfElements; i++){
