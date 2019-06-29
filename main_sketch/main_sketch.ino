@@ -11,8 +11,8 @@
 #define sdPin         4                             //  Pin SD карты.
 #define analogInput   0                             //  Pin Для "+" датчика напряжения.
 
-const   int    timeInterval          = 60;          //  Раз в сколько секунд будет происходить запись.
-const   double  interval             = 0.5;         //  Частота сканироввания датчика напряжение. (second /interval)
+const   int    timeInterval          = 5;          //  Раз в сколько секунд будет происходить запись.
+const   double  interval             = 0.1;         //  Частота сканироввания датчика напряжение. (second /interval)
 const   double  resistance           = 2.75;        //  Сопротивление тока.
 const   bool   InitializationSDcard  = false;       //  Включена SD карта в сборку? false - нет, true - да.
 const   String FileName              = "LOGS.txt";  //  Название файла в который будет происходить запись.
