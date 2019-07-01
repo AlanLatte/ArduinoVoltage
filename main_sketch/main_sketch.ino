@@ -7,6 +7,7 @@
 #include <Wire.h>
 #include <DS1307RTC.h>
 #include <SD.h>
+#include <string.h>
 
 #define sdPin         4                             //  Pin SD карты.
 #define analogInput   0                             //  Pin Для "+" датчика напряжения.
@@ -91,25 +92,18 @@ void tuningClock(){
 }
 
 String* getCurrentTime(){
-  const char CurrentTime[]= __TIME__;
-  const int  dateLength   = sizeof(CurrentTime)/sizeof(char);
-
-  String collecterOfData;
   static String data[3];
   int index = 0;
+  char str[] = __TIME__;
+  char * pch;
 
-  for (int i = 0; i < dateLength; i++){
-    String CurrentTimeString = String(CurrentTime[i]);
-    if (CurrentTimeString == ":"){
-      data[index] = collecterOfData;
-      collecterOfData = "";
-      index += 1;
-    }
-    else{
-      collecterOfData += CurrentTimeString;
-    }
+  pch = strtok (str,":");
+  while (pch != NULL)
+  {
+    data[index] = pch;
+    index += 1;
+    pch = strtok (NULL, ":");
   }
-  data[index] = collecterOfData;
   return data;
 }
 
@@ -118,23 +112,18 @@ String* getCurrentDate(){
                                   "Jan", "Feb", "Mar", "Apr", "May", "Jun",
                                   "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
                                 };
-  const char CurrentDate[]    = __DATE__;
-  const int  dateLength       = sizeof(CurrentDate)/sizeof(char);
   static String data[3];
   int index = 0;
-  String collecterOfData;
-  for (int i = 0; i < dateLength; i++){
-    String CurrentDateString = String(CurrentDate[i]);
-    if (CurrentDateString == " ") {
-      data[index] = collecterOfData;
-      collecterOfData = "";
-      index+=1;
-    }
-    else{
-      collecterOfData += CurrentDateString;
-    }
+  char str[] = __DATE__;
+  char * pch;
+
+  pch = strtok (str," ");
+  while (pch != NULL)
+  {
+    data[index] = pch;
+    index += 1;
+    pch = strtok (NULL, " ");
   }
-  data[index] = collecterOfData;
   for (int i = 0; i < 12; i++){
     if (String(data[0]) == monthName[i]){
       data[0]= i+1;
