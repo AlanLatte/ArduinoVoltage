@@ -112,14 +112,10 @@ String* getCurrentDate(){
                                   "Jan", "Feb", "Mar", "Apr", "May", "Jun",
                                   "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
                                 };
-
-}
-String* split(){
   static String data[3];
   short int index = 0;
   char str[] = __DATE__;
   char * pch;
-
   pch = strtok (str," ");
   while (pch != NULL)
   {
