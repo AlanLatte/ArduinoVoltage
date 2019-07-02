@@ -12,7 +12,7 @@
 #define sdPin         4                             //  Pin SD карты.
 #define analogInput   0                             //  Pin Для "+" датчика напряжения.
 
-const   short int    timeInterval      = 5;          //  Раз в сколько секунд будет происходить запись.
+const   short int    timeInterval    = 5;           //  Раз в сколько секунд будет происходить запись.
 const   double  interval             = 0.1;         //  Частота сканироввания датчика напряжение. (second /interval)
 const   double  resistance           = 2.75;        //  Сопротивление тока.
 const   bool   InitializationSDcard  = false;       //  Включена SD карта в сборку? false - нет, true - да.
@@ -112,6 +112,9 @@ String* getCurrentDate(){
                                   "Jan", "Feb", "Mar", "Apr", "May", "Jun",
                                   "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
                                 };
+
+}
+String* split(){
   static String data[3];
   short int index = 0;
   char str[] = __DATE__;
@@ -131,7 +134,6 @@ String* getCurrentDate(){
   }
   return data;
 }
-
 void writeToFile(String data, String FileName) {
   /*  Запись в файл   */
   logFile = SD.open(FileName, FILE_WRITE);
@@ -172,8 +174,10 @@ double * getData() {
   short int   analogValue;
   double averageOfAmperage = 0;
   double averageOfVoltage  = 0;
-  double maxElem_Amperage,maxElem_Voltage  = 0;
-  double minElem_Amperage,minElem_Voltage  = 5;
+  double maxElem_Amperage  = 0;
+  double maxElem_Voltage   = 0;
+  double minElem_Amperage  = 5;
+  double minElem_Voltage   = 5;
   double voltage;
   double amperage;
   short int delay_  = interval*1000;
@@ -185,16 +189,20 @@ double * getData() {
     amperage = voltage / resistance;             // Формула для расчёта силы тока.
     averageOfVoltage += voltage;                  // Скалдываем в перменную все значение напряжения.
     averageOfAmperage += amperage;               // Складываем в перменную все значения силы тока.
+    /*  Проверка на минимальные и максимальные значения  */
+    if (amperage <= minElem_Amperage) {
+      minElem_Amperage = amperage;
+    }
     if (amperage >= maxElem_Amperage) {
       maxElem_Amperage = amperage;
-    } else if (amperage <= minElem_Amperage) {
-      minElem_Amperage = amperage;
+    }
+    if (voltage <= minElem_Voltage) {
+      minElem_Voltage = voltage;
     }
     if (voltage >= maxElem_Voltage) {
       maxElem_Voltage = voltage;
-    } else if (voltage <= minElem_Voltage) {
-      minElem_Voltage = voltage;
     }
+    /*  --------------------- */
     timeLimit -= interval;                       // Вычитаем от переменной интервал.
     delay(delay_);                               // Время простоя.
   }
