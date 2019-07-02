@@ -12,7 +12,7 @@
 #define sdPin         4                             //  Pin SD карты.
 #define analogInput   0                             //  Pin Для "+" датчика напряжения.
 
-const   short int    timeInterval          = 5;          //  Раз в сколько секунд будет происходить запись.
+const   short int    timeInterval      = 5;          //  Раз в сколько секунд будет происходить запись.
 const   double  interval             = 0.1;         //  Частота сканироввания датчика напряжение. (second /interval)
 const   double  resistance           = 2.75;        //  Сопротивление тока.
 const   bool   InitializationSDcard  = false;       //  Включена SD карта в сборку? false - нет, true - да.
@@ -185,15 +185,15 @@ double * getData() {
     amperage = voltage / resistance;             // Формула для расчёта силы тока.
     averageOfVoltage += voltage;                  // Скалдываем в перменную все значение напряжения.
     averageOfAmperage += amperage;               // Складываем в перменную все значения силы тока.
-    if (maxElem_Amperage >= amperage) {
+    if (amperage >= maxElem_Amperage) {
       maxElem_Amperage = amperage;
-    } else if (minElem_Amperage <= amperage) {
+    } else if (amperage <= minElem_Amperage) {
       minElem_Amperage = amperage;
     }
-    if (maxElem_Voltage >= voltage) {
+    if (voltage >= maxElem_Voltage) {
       maxElem_Voltage = voltage;
-    } else if (maxElem_Voltage <= voltage) {
-      maxElem_Voltage = voltage;
+    } else if (voltage <= minElem_Voltage) {
+      minElem_Voltage = voltage;
     }
     timeLimit -= interval;                       // Вычитаем от переменной интервал.
     delay(delay_);                               // Время простоя.
