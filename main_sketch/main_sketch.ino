@@ -1,5 +1,5 @@
 /*
-      VERSION:  0.1d
+      VERSION:  0.1e
 */
 
 // Подлкючаем необходимые библиотеки
@@ -12,7 +12,7 @@
 #define sdPin         4                             //  Pin SD карты.
 #define analogInput   0                             //  Pin Для "+" датчика напряжения.
 
-const   int    timeInterval          = 5;          //  Раз в сколько секунд будет происходить запись.
+const   short int    timeInterval    = 5;           //  Раз в сколько секунд будет происходить запись.
 const   double  interval             = 0.1;         //  Частота сканироввания датчика напряжение. (second /interval)
 const   double  resistance           = 2.75;        //  Сопротивление тока.
 const   bool   InitializationSDcard  = false;       //  Включена SD карта в сборку? false - нет, true - да.
@@ -20,7 +20,7 @@ const   String FileName              = "LOGS.txt";  //  Название фай�
 
 /* Warning: Не изменять*/
 double        timeLimit              = timeInterval;
-const  int   amountOfElements        = timeInterval * (1 / (interval));
+const  short int   amountOfElements        = timeInterval * (1 / (interval));
 File         logFile;
 /*----------------------------*/
 
@@ -93,7 +93,7 @@ void tuningClock(){
 
 String* getCurrentTime(){
   static String data[3];
-  int index = 0;
+  short int index = 0;
   char str[] = __TIME__;
   char * pch;
 
@@ -113,10 +113,9 @@ String* getCurrentDate(){
                                   "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
                                 };
   static String data[3];
-  int index = 0;
+  short int index = 0;
   char str[] = __DATE__;
   char * pch;
-
   pch = strtok (str," ");
   while (pch != NULL)
   {
@@ -124,14 +123,13 @@ String* getCurrentDate(){
     index += 1;
     pch = strtok (NULL, " ");
   }
-  for (int i = 0; i < 12; i++){
+  for (short int i = 0; i < 12; i++){
     if (String(data[0]) == monthName[i]){
       data[0]= i+1;
     }
   }
   return data;
 }
-
 void writeToFile(String data, String FileName) {
   /*  Запись в файл   */
   logFile = SD.open(FileName, FILE_WRITE);
@@ -146,7 +144,7 @@ void writeToFile(String data, String FileName) {
 
 String getVoltageData() {
   double* data = getData();
-  String collectedData = String(data[0]) + "-" + String(data[1]) + "-" + String(data[2]);
+  String collectedData = String(data[0]) + "-" + String(data[1]) + "-" + String(data[2]) + "-" + String(data[3]) + "-" + String(data[4]) + "-" + String(data[5]);
   return collectedData;
   /*
     data[0] -- Минимальное значние
@@ -158,9 +156,7 @@ String getVoltageData() {
 }
 
 String getDateTime() {
-
   String collectedData = String(year()) + "." + month() + "." +  day() + "-" + hour() + ":" +  minute() + ":" + second();
-
   return collectedData;
   /*
     Год . Месяц . День - Час : Минута : Секунда
@@ -170,40 +166,47 @@ String getDateTime() {
 
 double * getData() {
   /* Warning: Не изменять */
-  static double data[3];
-  int   analogValue;
-  double average = 0;
-  double Array[amountOfElements];
-  double maxElem;
-  double minElem;
+  static double data[6];
+  short int   analogValue;
+  double averageOfAmperage = 0;
+  double averageOfVoltage  = 0;
+  double maxElem_Amperage  = 0;
+  double maxElem_Voltage   = 0;
+  double minElem_Amperage  = 5;
+  double minElem_Voltage   = 5;
   double voltage;
   double amperage;
-  int delay_  = interval*1000;
+  short int delay_  = interval*1000;
   /* ------------ */
-  for (int index = 0; index < amountOfElements; index ++)
+  for (size_t index = 0; index < amountOfElements; index ++)
   {
     analogValue = analogRead(analogInput);       // Считываем значения с аналогового порта.
     voltage = ( 5 / 1024.0 ) * analogValue;      // Формула для расчёта напряжения.
     amperage = voltage / resistance;             // Формула для расчёта силы тока.
-    average += amperage;                         // Складываем в перменную все значения силы тока.
-    Array[index] = amperage;                     // Записываем в массив данные.
+    averageOfVoltage += voltage;                  // Скалдываем в перменную все значение напряжения.
+    averageOfAmperage += amperage;               // Складываем в перменную все значения силы тока.
+    /*  Проверка на минимальные и максимальные значения  */
+    if (amperage <= minElem_Amperage) {
+      minElem_Amperage = amperage;
+    }
+    if (amperage >= maxElem_Amperage) {
+      maxElem_Amperage = amperage;
+    }
+    if (voltage <= minElem_Voltage) {
+      minElem_Voltage = voltage;
+    }
+    if (voltage >= maxElem_Voltage) {
+      maxElem_Voltage = voltage;
+    }
+    /*  --------------------- */
     timeLimit -= interval;                       // Вычитаем от переменной интервал.
     delay(delay_);                               // Время простоя.
   }
-
-  /* Алгоритм поиска максимального и минимального значения */
-  maxElem = Array[0]; minElem = Array[0];
-  for(int i = 1; i < amountOfElements; i++){
-    if (maxElem < Array[i]) {
-      maxElem = Array[i];
-    }
-    else if (minElem > Array[i]){
-      minElem = Array[i];
-    }
-  }
-  /*  ----------------------------- */
-  data[0] = minElem;
-  data[1] = maxElem;
-  data[2] = average / amountOfElements;
+  data[0] = minElem_Amperage;
+  data[1] = maxElem_Amperage;
+  data[2] = averageOfAmperage / amountOfElements;
+  data[3] = minElem_Voltage;
+  data[4] = maxElem_Voltage;
+  data[5] = averageOfVoltage / amountOfElements;
   return data;
 }
