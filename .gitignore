@@ -3,6 +3,7 @@
 /tests
 # Prerequisites
 *.d
+arduinoScetch.fzz
 
 # Object files
 *.o
