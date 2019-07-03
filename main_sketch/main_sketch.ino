@@ -10,12 +10,14 @@
 #include <string.h>
 
 /*  Настройка пинов */
-#define sdPin         4                                 //  Pin SD карты.
-#define analogInput   0                                 //  Pin Для "+" датчика напряжения.
+#define analogInput     0                               //  Pin Для "+" датчика напряжения.
+#define sdPin           4                               //  Pin SD карты.
+#define errorOfInit     5                               //  Pin индикации ошибки              (светодиод 1)
+#define initIndication  6                               //  Pin индикации подключения мудлей  (светодиод 2)
+#define writeIndication 7                               //  Pin индикации о записи            (светодиод 3)
 /*  --------------  */
 
 /* TODO: Debug mode specification
-
   [-] Disables the approximation of data to the source (to the divisor)
   [+] USB debugging is enabled
 */
@@ -23,7 +25,7 @@
 /*  Обозначаем константы  */
 
 const   short int   timeInterval         = 5;           //  Раз в сколько секунд будет происходить запись.
-const   float       interval             = 0.1;         //  Частота сканироввания датчика напряжение. (second /interval)
+const   float       interval             = 0.5;         //  Частота сканироввания датчика напряжение. (second /interval)
 const   float       resistance           = 2.75;        //  Сопротивление тока.
 const   bool        InitializationSDcard = false;       //  Включена SD карта в сборку? false - нет, true - да.
 const   size_t      maxIncomingCurrent   = 100;
@@ -38,35 +40,54 @@ File                logFile;
 
 void setup() {
 
+  bool checkOfInit = true;
+
   Serial.begin(9600);
-  pinMode(analogInput, INPUT);
-  while(!Serial);
+  /*  Инициализация и настройка пинов */
+  pinMode(analogInput     , INPUT );
+  pinMode(errorOfInit     , OUTPUT);
+  pinMode(writeIndication , OUTPUT);
+  pinMode(initIndication  , OUTPUT);
+  /*  ------------------------------- */
   setSyncProvider(RTC.get);
 
-  /*  Проверка на подключения всех модулей.  */
-  Serial.println("Check all connections.\n");
-  Serial.println("Connecting to RTC");
+  /*  Отключение светодиодов*/
+  /*  ------------------  */
+  while(!Serial);
+
+  /*  Инициализация всех модулей.  */
   if (timeStatus() != timeSet) {
-    Serial.println("Unable to sync with the RTC");
+    checkOfInit &= false;
   } else {
-    Serial.println("installation real time...");
     tuningClock();
-    Serial.println("Done!\n");
+    checkOfInit &= true;
   }
   if (InitializationSDcard){
-    Serial.println("Connecting to SD card...");
     if (SD.begin(sdPin)) {
-      Serial.println("Done!\n\n");
+      checkOfInit &= true;
     } else {
-      Serial.println("Sd card connecting failed :( ");
+      if (checkOfInit) {
+        checkOfInit &= false;
+      }
     }
   } else {
-    Serial.println("Initialization of the memory card is not included");
+      checkOfInit &= true;
   }
   /* ---------------------------------- */
+  
+  /*  Проверка на успешно пройденную инициализацю */
+  if (!checkOfInit) {
+    digitalWrite(errorOfInit, HIGH);
+  }else{
+    digitalWrite(initIndication, HIGH);
+  }
+  /*  ------------------------------------  */
 }
 
 void loop() {
+
+  digitalWrite(writeIndication, LOW); // Отключаем индикацию записи в файл
+
   /* Собираем данные с датчиков, объединяем в необходимый формат. */
   String collected_all_data   =   "";
   String collectedDataVoltage =   getVoltageData();
@@ -133,9 +154,9 @@ String* getCurrentDate(){
 
   pch = strtok (str," ");
   while (pch != NULL) {
-  data[index] =   pch;
-  index       +=  1;
-  pch         =   strtok (NULL, " ");
+    data[index] =   pch;
+    index       +=  1;
+    pch         =   strtok (NULL, " ");
   }
   for (size_t month_index = 0; month_index < 12; month_index++){
     if (String(data[0]) == monthName[month_index]){
@@ -150,6 +171,7 @@ void writeToFile(String data, String FileName) {
   if (logFile) {
     logFile.println(data);
     logFile.close();
+    digitalWrite(writeIndication, HIGH);  // Включение светодиода
   } else {
     Serial.println("error opening LOGS.txt");
   }
