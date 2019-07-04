@@ -30,10 +30,13 @@ const   short int   timeInterval         = 5;           //  Раз в сколь
 const   float       interval             = 0.5;         //  Частота сканироввания датчика напряжение. (second /interval)
 const   float       resistance           = 2.75;        //  Сопротивление тока.
 const   bool        InitializationSDcard = false;       //  Включена SD карта в сборку? false - нет, true - да.
-const   size_t      maxIncomingCurrent   = 100;
+const   size_t      highInputVoltage     = 100;         //  Наибольшее постпающее напряжение
+const   size_t      maxOutputCurrent     = 300;         //  Наибольшее выходящее значение силы тока
 const   String      FileName             = "LOGS.txt";  //  Название файла в который будет происходить запись.
+
 const   short int   amountOfElements     = timeInterval * (1 / (interval));
-const   short int   voltageDivider       =  maxIncomingCurrent / 5;
+const   short int   voltageDivider       = highInputVoltage / 5;
+const   short int   amperageFactor       = maxOutputCurrent / 5;
 
 /* Warning: Не изменять*/
 float               timeLimit            = timeInterval;
@@ -225,7 +228,7 @@ float * getData() {
   float           maxElem_Amperage  = 0;
   float           maxElem_Voltage   = 0;
   float           minElem_Amperage  = 5;
-  float           minElem_Voltage   = maxIncomingCurrent;
+  float           minElem_Voltage   = highInputVoltage;
   short   int     delay_            = interval*1000;
   /* --------------------------- */
 
@@ -235,10 +238,10 @@ float * getData() {
     analogOfVoltage   = analogRead(analogVoltage );       // Считываем значения с аналогового порта для датчика напряжение. (ДН)
     voltageOf_AS      = ( 5 / 1024.0 ) * analogOfAmperage;// Формула для расчёта напряжения c ДТ.
     voltageOf_VS      = ( 5 / 1024.0 ) * analogOfVoltage ;// Формула для расчёта напряжения с ДН.
-    currentVoltage    = voltageOf_AS * voltageDivider;    // Обратное возрващение в напряжение (после делителя напряжения)
-    amperage          = voltageOf_AS / resistance;        // Формула для расчёта силы тока. (u/r)
+    currentVoltage    = voltageOf_VS * voltageDivider;    // Обратное возрващение в напряжение (после делителя напряжения)
+    amperage          = voltageOf_AS / resistance;        // Формула для расчёта силы тока. (V/R)
     averageOfVoltage  += currentVoltage;                  // Скалдываем в перменную все значение напряжения.
-    averageOfAmperage += amperage;                        // Складываем в перменную все значения силы тока.
+    averageOfAmperage += (amperage * maxOutputCurrent);   // Складываем в перменную все значения (силы тока. * максимально выходной ток)
 
     /*  Проверка на минимальные и максимальные значения  */
     if   (amperage <= minElem_Amperage)       {
