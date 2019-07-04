@@ -234,14 +234,14 @@ float * getData() {
 
   for (size_t index = 0; index < amountOfElements; index ++)
   {
-    analogOfAmperage  = analogRead(analogAmperage);       // Считываем значения с аналогового порта для датчика тока. (ДТ)
-    analogOfVoltage   = analogRead(analogVoltage );       // Считываем значения с аналогового порта для датчика напряжение. (ДН)
-    voltageOf_AS      = ( 5 / 1024.0 ) * analogOfAmperage;// Формула для расчёта напряжения c ДТ.
-    voltageOf_VS      = ( 5 / 1024.0 ) * analogOfVoltage ;// Формула для расчёта напряжения с ДН.
-    currentVoltage    = voltageOf_VS * voltageDivider;    // Обратное возрващение в напряжение (после делителя напряжения)
-    amperage          = voltageOf_AS / resistance;        // Формула для расчёта силы тока. (V/R)
-    averageOfVoltage  += currentVoltage;                  // Скалдываем в перменную все значение напряжения.
-    averageOfAmperage += (amperage * maxOutputCurrent);   // Складываем в перменную все значения (силы тока. * максимально выходной ток)
+    analogOfAmperage  = analogRead(analogAmperage);                     // Считываем значения с аналогового порта для датчика тока. (ДТ)
+    analogOfVoltage   = analogRead(analogVoltage );                     // Считываем значения с аналогового порта для датчика напряжение. (ДН)
+    voltageOf_AS      = ( 5 / 1024.0 ) * analogOfAmperage;              // Формула для расчёта напряжения c ДТ.
+    voltageOf_VS      = ( 5 / 1024.0 ) * analogOfVoltage ;              // Формула для расчёта напряжения с ДН.
+    currentVoltage    = voltageOf_VS * voltageDivider;                  // Обратное возрващение в напряжение (после делителя напряжения)
+    amperage          = (voltageOf_AS / resistance) * amperageFactor; // Формула для расчёта силы тока. (V/R)
+    averageOfVoltage  += currentVoltage;                                // Скалдываем в перменную все значение напряжения.
+    averageOfAmperage += amperage;                                      // Складываем в перменную все значения (силы тока. * максимально выходной ток)
 
     /*  Проверка на минимальные и максимальные значения  */
     if   (amperage <= minElem_Amperage)       {
