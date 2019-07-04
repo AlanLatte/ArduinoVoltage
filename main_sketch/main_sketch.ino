@@ -10,7 +10,9 @@
 #include <string.h>
 
 /*  Настройка пинов */
-#define analogInput     0                               //  Pin Для "+" датчика напряжения.
+#define analogAmperage  0                               //  Pin Для датчика сила тока.
+#define analogVoltage   1                               //  Pin Для датчика напряжения.
+
 #define sdPin           4                               //  Pin SD карты.
 #define errorOfInit     5                               //  Pin индикации ошибки              (светодиод 1)
 #define initIndication  6                               //  Pin индикации подключения мудлей  (светодиод 2)
@@ -44,7 +46,8 @@ void setup() {
 
   Serial.begin(9600);
   /*  Инициализация и настройка пинов */
-  pinMode(analogInput     , INPUT );
+  pinMode(analogAmperage  , INPUT );
+  pinMode(analogVoltage   , INPUT );
   pinMode(errorOfInit     , OUTPUT);
   pinMode(writeIndication , OUTPUT);
   pinMode(initIndication  , OUTPUT);
@@ -74,7 +77,7 @@ void setup() {
       checkOfInit &= true;
   }
   /* ---------------------------------- */
-  
+
   /*  Проверка на успешно пройденную инициализацю */
   if (!checkOfInit) {
     digitalWrite(errorOfInit, HIGH);
@@ -211,8 +214,10 @@ String getDateTime() {
 float * getData() {
   /* Warning: Значения не изменять */
   static  float   data[6];
-  short   int     analogValue;
-  float           voltage;
+  short   int     analogOfAmperage;
+  short   int     analogOfVoltage;
+  float           voltageOf_AS;
+  float           voltageOf_VS;
   float           currentVoltage;
   float           amperage;
   float           averageOfAmperage = 0;
@@ -226,12 +231,14 @@ float * getData() {
 
   for (size_t index = 0; index < amountOfElements; index ++)
   {
-    analogValue       = analogRead(analogInput);        // Считываем значения с аналогового порта.
-    voltage           = ( 5 / 1024.0 ) * analogValue;   // Формула для расчёта напряжения.
-    currentVoltage    = voltage * voltageDivider;       // Обратное возрващение в напряжение (после делителя напряжения)
-    amperage          = voltage / resistance;           // Формула для расчёта силы тока.
-    averageOfVoltage  += currentVoltage;                // Скалдываем в перменную все значение напряжения.
-    averageOfAmperage += amperage;                      // Складываем в перменную все значения силы тока.
+    analogOfAmperage  = analogRead(analogAmperage);       // Считываем значения с аналогового порта для датчика тока. (ДТ)
+    analogOfVoltage   = analogRead(analogVoltage );       // Считываем значения с аналогового порта для датчика напряжение. (ДН)
+    voltageOf_AS      = ( 5 / 1024.0 ) * analogOfAmperage;// Формула для расчёта напряжения c ДТ.
+    voltageOf_VS      = ( 5 / 1024.0 ) * analogOfVoltage ;// Формула для расчёта напряжения с ДН.
+    currentVoltage    = voltageOf_AS * voltageDivider;    // Обратное возрващение в напряжение (после делителя напряжения)
+    amperage          = voltageOf_AS / resistance;        // Формула для расчёта силы тока. (u/r)
+    averageOfVoltage  += currentVoltage;                  // Скалдываем в перменную все значение напряжения.
+    averageOfAmperage += amperage;                        // Складываем в перменную все значения силы тока.
 
     /*  Проверка на минимальные и максимальные значения  */
     if   (amperage <= minElem_Amperage)       {
