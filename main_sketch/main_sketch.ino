@@ -227,7 +227,7 @@ float * getData() {
   float           averageOfVoltage  = 0;
   float           maxElem_Amperage  = 0;
   float           maxElem_Voltage   = 0;
-  float           minElem_Amperage  = 5;
+  float           minElem_Amperage  = maxOutputCurrent;
   float           minElem_Voltage   = highInputVoltage;
   short   int     delay_            = interval*1000;
   /* --------------------------- */
