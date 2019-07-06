@@ -1,5 +1,5 @@
 /*
-      VERSION:  0.2.1b
+      VERSION:  0.2.2a
 */
 
 // Подлкючаем необходимые библиотеки
@@ -12,6 +12,7 @@
 /*  Настройка пинов */
 #define analogAmperage  0                               //  Pin Для датчика сила тока.
 #define analogVoltage   1                               //  Pin Для датчика напряжения.
+#define analogTumbler   2                               //  Pin тумблера.
 
 #define sdPin           4                               //  Pin SD карты.
 #define errorOfInit     5                               //  Pin индикации ошибки              (светодиод 1)
@@ -26,26 +27,33 @@
 
 /*  Обозначаем константы  */
 
-const   short int   timeInterval         = 5;           //  Раз в сколько секунд будет происходить запись.
-const   float       interval             = 0.5;         //  Частота сканироввания датчика напряжение. (second /interval)
-const   float       resistance           = 2.75;        //  Сопротивление тока.
-const   bool        InitializationSDcard = false;       //  Включена SD карта в сборку? false - нет, true - да.
-const   size_t      highInputVoltage     = 100;         //  Наибольшее постпающее напряжение
-const   size_t      maxOutputCurrent     = 300;         //  Наибольшее выходящее значение силы тока
-const   String      FileName             = "LOGS.txt";  //  Название файла в который будет происходить запись.
+const   short int   timeInterval          = 10;           //  Раз в сколько секунд будет происходить запись.
+const   float       interval              = 0.5;         //  Частота сканироввания датчика напряжение. (second /interval)
+const   float       resistance            = 2.75;        //  Сопротивление тока.
+const   bool        InitializationSDcard  = false;       //  Включена SD карта в сборку? false - нет, true - да.
+const   size_t      highInputVoltage      = 100;         //  Наибольшее постпающее напряжение
+const   size_t      maxOutputCurrent      = 300;         //  Наибольшее выходящее значение силы тока
+const   String      FileName              = "LOGS.txt";  //  Название файла в который будет происходить запись.
 
-const   short int   amountOfElements     = timeInterval * (1 / (interval));
-const   short int   voltageDivider       = highInputVoltage / 5;
-const   short int   amperageFactor       = maxOutputCurrent / 5;
-
+const   short int   amountOfElements      = timeInterval * (1 / (interval));
+const   short int   voltageDivider        = highInputVoltage / 5;
+const   short int   amperageFactor        = maxOutputCurrent / 5;
+const   char       *monthName[12]         =  {
+                                              "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                                              "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+                                            };
 /* Warning: Не изменять*/
-float               timeLimit            = timeInterval;
+float               timeLimit             = timeInterval;
 File                logFile;
+tmElements_t        tm;
+bool parse                                = false;
+bool config                               = false;
 /*----------------------------*/
 
 void setup() {
 
-  bool checkOfInit = true;
+  bool    checkOfInit  = true;
+  size_t  checkOfTumbler;
 
   Serial.begin(9600);
   /*  Инициализация и настройка пинов */
@@ -55,19 +63,22 @@ void setup() {
   pinMode(writeIndication , OUTPUT);
   pinMode(initIndication  , OUTPUT);
   /*  ------------------------------- */
-  setSyncProvider(RTC.get);
-
   /*  Отключение светодиодов*/
   /*  ------------------  */
   while(!Serial);
+  checkOfTumbler = analogRead(analogTumbler);
+  Serial.println(checkOfTumbler);
 
-  /*  Инициализация всех модулей.  */
-  if (timeStatus() != timeSet) {
-    checkOfInit &= false;
-  } else {
+  if (checkOfTumbler == 0){
+    Serial.println("tuningClock!");
     tuningClock();
-    checkOfInit &= true;
+    if (!(parse && config)) {
+      checkOfInit &= false;
+    }else{
+      checkOfInit &= true;
+    }
   }
+  /*  Инициализация всех модулей.  */
   if (InitializationSDcard){
     if (SD.begin(sdPin)) {
       checkOfInit &= true;
@@ -115,62 +126,42 @@ void loop() {
 }
 
 void tuningClock(){
-  const String* date  =   getCurrentDate();
-  const String* time_ =   getCurrentTime();
-  int   month_        =   date [0].toInt();
-  int   day_          =   date [1].toInt();
-  int   year_         =   date [2].toInt();
-  int   hour_         =   time_[0].toInt();
-  int   minute_       =   time_[1].toInt();
-  int   second_       =   time_[2].toInt();
-  /* Настраиваем часы. */
-  setTime(hour_,minute_,second_,day_,month_,year_);
-  /*
-    Формат настройки :
-      час, минута, секунда, день, месяц, день
-  */
-  RTC.set(now());   // Загружаем в часы.
-}
 
-String* getCurrentTime(){
-  static  String  data  [3];
-  short   int     index = 0;
-  char            str[] = __TIME__;
-  char            *pch;
-
-  pch = strtok (str,":");
-  while (pch != NULL)
-  {
-    data[index] = pch;
-    index += 1;
-    pch = strtok (NULL, ":");
-  }
-  return data;
-}
-
-String* getCurrentDate(){
-  const String monthName[12]  = {
-                                  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-                                  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
-                                };
-  static  String  data  [3];
-  short   int     index = 0;
-  char            str[] = __DATE__;
-  char            *pch;
-
-  pch = strtok (str," ");
-  while (pch != NULL) {
-    data[index] =   pch;
-    index       +=  1;
-    pch         =   strtok (NULL, " ");
-  }
-  for (size_t month_index = 0; month_index < 12; month_index++){
-    if (String(data[0]) == monthName[month_index]){
-      data[0]= month_index+1;
+  if (getCurrentDate(__DATE__) && getCurrentTime(__TIME__)) {
+    parse = true;
+    if (RTC.write(tm)) {
+      config = true;
     }
   }
-  return data;
 }
+
+bool getCurrentTime(const char *str){
+  int Hour, Min, Sec;
+
+  if (sscanf(str, "%d:%d:%d", &Hour, &Min, &Sec) != 3) return false;
+  tm.Hour = Hour;
+  tm.Minute = Min;
+  tm.Second = Sec;
+  return true;
+}
+
+bool getCurrentDate(const char *str){
+  char Month[12];
+  int Day, Year;
+  uint8_t monthIndex;
+
+  if (sscanf(str, "%s %d %d", Month, &Day, &Year) != 3) return false;
+  for (monthIndex = 0; monthIndex < 12; monthIndex++) {
+    if (strcmp(Month, monthName[monthIndex]) == 0) break;
+  }
+  if (monthIndex >= 12) return false;
+  tm.Day = Day;
+  tm.Month = monthIndex + 1;
+  tm.Year = CalendarYrToTm(Year);
+  return true;
+}
+
+
 void writeToFile(String data, String FileName) {
   /*  Запись в файл   */
   logFile = SD.open(FileName, FILE_WRITE);
@@ -206,11 +197,16 @@ String getVoltageData() {
 }
 
 String getDateTime() {
-  String collectedData = String(year()) + "." + month() + "." +  day() + "-" + hour() + ":" +  minute() + ":" + second();
-  return collectedData;
-  /*
-    Год . Месяц . День - Час : Минута : Секунда
-  */
+  if (RTC.read(tm)){
+    String collectedData = String(tmYearToCalendar(tm.Year)) + "." + tm.Month + "." +  tm.Day + "-" + tm.Hour + ":" +  tm.Minute + ":" + tm.Second;
+    /*
+      Год . Месяц . День - Час : Минута : Секунда
+    */
+    return collectedData;
+  }else{
+      digitalWrite(errorOfInit, HIGH);
+  }
+
 }
 
 
