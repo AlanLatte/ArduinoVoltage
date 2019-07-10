@@ -27,7 +27,7 @@
 
 /*  Обозначаем константы  */
 
-const   short int   timeInterval          = 10;           //  Раз в сколько секунд будет происходить запись.
+const   short int   timeInterval          = 1;           //  Раз в сколько секунд будет происходить запись.
 const   float       interval              = 0.5;         //  Частота сканироввания датчика напряжение. (second /interval)
 const   float       resistance            = 2.75;        //  Сопротивление тока.
 const   bool        InitializationSDcard  = false;       //  Включена SD карта в сборку? false - нет, true - да.
@@ -67,10 +67,8 @@ void setup() {
   /*  ------------------  */
   while(!Serial);
   checkOfTumbler = analogRead(analogTumbler);
-  Serial.println(checkOfTumbler);
-
   if (checkOfTumbler == 0){
-    Serial.println("tuningClock!");
+    Serial.println("tuning the clock!!");
     tuningClock();
     if (!(parse && config)) {
       checkOfInit &= false;
@@ -94,35 +92,39 @@ void setup() {
 
   /*  Проверка на успешно пройденную инициализацю */
   if (!checkOfInit) {
-    digitalWrite(errorOfInit, HIGH);
+    digitalWrite(errorOfInit, HIGH);    // Индикация о ошибке
   }else{
-    digitalWrite(initIndication, HIGH);
+    digitalWrite(initIndication, HIGH); // Индикация о правильной загрузке модулей
   }
   /*  ------------------------------------  */
 }
 
 void loop() {
-
-  digitalWrite(writeIndication, LOW); // Отключаем индикацию записи в файл
-
-  /* Собираем данные с датчиков, объединяем в необходимый формат. */
-  String collected_all_data   =   "";
-  String collectedDataVoltage =   getVoltageData();
-  collected_all_data          +=  getDateTime();
-  collected_all_data          +=  "-";
-  collected_all_data          +=  collectedDataVoltage;
-  /*--------------------------*/
-
+  String data;
+  digitalWrite(writeIndication, LOW);   // Отключаем индикацию записи в файл
+  data = collectData();                 // Собираем данные с датчиков
   /*
     Формат данных:
         Год . Месяц . День - Час : Минута : Секунда - Мин.значМин.знач - Макс.знач - Сред.знач - Макс.знач - Сред.знач
   */
   if (InitializationSDcard){
-    writeToFile(collected_all_data, FileName);  // Записываем в файл на SD карту.
+    writeToFile(data, FileName);                // Записываем в файл на SD карту.
   } else{
-    Serial.println(collected_all_data);         // Выводит на экраз значения.
+    Serial.println(data);                       // Выводит на экраз значения.
+    digitalWrite(writeIndication, HIGH);
   }
   timeLimit = timeInterval;                     // Сбрасываем время отчета.
+}
+
+String collectData(){
+  /* Собираем данные с датчиков, объединяем в необходимый формат. */
+  String collectedAllData     =   "";
+  String collectedDataVoltage =   getVoltageData();
+  collectedAllData            +=  getDateTime();
+  collectedAllData            +=  "-";
+  collectedAllData            +=  collectedDataVoltage;
+  /*--------------------------*/
+  return String(collectedAllData);
 }
 
 void tuningClock(){
@@ -168,9 +170,10 @@ void writeToFile(String data, String FileName) {
   if (logFile) {
     logFile.println(data);
     logFile.close();
-    digitalWrite(writeIndication, HIGH);  // Включение светодиода
+    digitalWrite(writeIndication, HIGH);  // Индикация о успешной записи
   } else {
     Serial.println("error opening LOGS.txt");
+    digitalWrite(errorOfInit, HIGH);      // Индикация о ошибке
   }
   /*  ---------   */
 }
