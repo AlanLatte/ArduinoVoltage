@@ -10,17 +10,24 @@
 #include <string.h>
 
 /*  Настройка пинов */
-#define analogAmperage  0                               //  Pin Для датчика сила тока.
-#define analogVoltage   1                               //  Pin Для датчика напряжения.
-#define analogTumbler   2                               //  Pin тумблера.
 
-#define sdPin           4                               //  Pin SD карты.
-#define errorOfInit     5                               //  Pin индикации ошибки              (светодиод 1)
-#define initIndication  6                               //  Pin индикации подключения мудлей  (светодиод 2)
-#define writeIndication 7                               //  Pin индикации о записи            (светодиод 3)
+  /*  Пины для отладки данных  */
+  #define analogAmperage  0                               //  Pin Для датчика сила тока.
+  #define analogVoltage   1                               //  Pin Для датчика напряжения.
+  #define analogTumbler   2                               //  Pin тумблера.
+  #define sdPin           4                               //  Pin SD карты.
+  /*  -----------------------  */
+
+  /*  Пины для индикации по светодиодам */
+  #define errorOfInit     5                               //  Pin индикации ошибки              (светодиод 1)
+  #define initIndication  6                               //  Pin индикации подключения мудлей  (светодиод 2)
+  #define writeIndication 7                               //  Pin индикации о записи            (светодиод 3)
+  /*  ---------------------------------  */
+
 /*  --------------  */
 
-/* TODO: Debug mode specification
+/*
+  TODO: Debug mode specification
   [-] Disables the approximation of data to the source (to the divisor)
   [+] USB debugging is enabled
 */
@@ -30,7 +37,7 @@
 const   short int   timeInterval          = 1;           //  Раз в сколько секунд будет происходить запись.
 const   float       interval              = 0.5;         //  Частота сканироввания датчика напряжение. (second /interval)
 const   float       resistance            = 2.75;        //  Сопротивление тока.
-const   bool        InitializationSDcard  = false;       //  Включена SD карта в сборку? false - нет, true - да.
+const   bool        InitializationSDcard  = true;        //  Включена SD карта в сборку? false - нет, true - да.
 const   size_t      highInputVoltage      = 100;         //  Наибольшее постпающее напряжение
 const   size_t      maxOutputCurrent      = 300;         //  Наибольшее выходящее значение силы тока
 const   String      FileName              = "LOGS.txt";  //  Название файла в который будет происходить запись.
@@ -48,7 +55,7 @@ File                logFile;
 tmElements_t        tm;
 bool parse                                = false;
 bool config                               = false;
-/*----------------------------*/
+/*  ------------------ */
 
 void setup() {
 
@@ -86,7 +93,7 @@ void setup() {
       }
     }
   } else {
-      checkOfInit &= true;
+    checkOfInit &= true;
   }
   /* ---------------------------------- */
 
@@ -201,7 +208,12 @@ String getVoltageData() {
 
 String getDateTime() {
   if (RTC.read(tm)){
-    String collectedData = String(tmYearToCalendar(tm.Year)) + "." + tm.Month + "." +  tm.Day + "-" + tm.Hour + ":" +  tm.Minute + ":" + tm.Second;
+    String collectedData  = String(tmYearToCalendar(tm.Year)) + "."
+                                                  + tm.Month  + "."
+                                                  + tm.Day   + "-"
+                                                  + tm.Hour   + ":"
+                                                  + tm.Minute + ":"
+                                                  + tm.Second;
     /*
       Год . Месяц . День - Час : Минута : Секунда
     */
@@ -238,7 +250,7 @@ float * getData() {
     voltageOf_AS      = ( 5 / 1024.0 ) * analogOfAmperage;              // Формула для расчёта напряжения c ДТ.
     voltageOf_VS      = ( 5 / 1024.0 ) * analogOfVoltage ;              // Формула для расчёта напряжения с ДН.
     currentVoltage    = voltageOf_VS * voltageDivider;                  // Обратное возрващение в напряжение (после делителя напряжения)
-    amperage          = (voltageOf_AS / resistance) * amperageFactor; // Формула для расчёта силы тока. (V/R)
+    amperage          = (voltageOf_AS / resistance) * amperageFactor;   // Формула для расчёта силы тока. (V/R)
     averageOfVoltage  += currentVoltage;                                // Скалдываем в перменную все значение напряжения.
     averageOfAmperage += amperage;                                      // Складываем в перменную все значения (силы тока. * максимально выходной ток)
 
